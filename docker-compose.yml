@@ -1,0 +1,130 @@
+version: '3'
+
+services:
+  #PHP Service
+  app:
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
+    container_name: app
+    restart: unless-stopped
+    tty: true
+    environment:
+      XDEBUG_CONFIG: remote_host=host.docker.internal
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    working_dir: /var/www
+    expose:
+      - 9009
+    volumes:
+    - ./:/var/www
+    - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+    - app-network
+
+  #nodejs Service
+  node:
+    build:
+      context: .
+      dockerfile: ./docker/node/Dockerfile
+    container_name: node
+    restart: unless-stopped
+    tty: true
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    networks:
+      - app-network
+
+  #Nginx Service
+  webserver:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    tty: true
+    ports:
+    - "80:80"
+    - "443:443"
+    volumes:
+    - ./:/var/www
+    - ./docker/nginx/cert:/etc/ssl/certs
+    - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+    - app-network
+
+  #MySQL Service
+  db:
+    image: mysql:5.7.22
+    container_name: db
+    restart: unless-stopped
+    tty: true
+    ports:
+    - "3306:3306"
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_ROOT_PASSWORD: hibf6biq
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+    - dbdata:/var/lib/mysql
+    - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+    - app-network
+
+  #PostgreSQL Service
+#  db:
+#    image: postgres:latest
+#    container_name: db
+#    restart: always
+#    ports:
+#    - "5432:5432"
+#    environment:
+#      POSTGRES_DB: job_manager
+#      POSTGRES_PASSWORD: job_manager
+#      POSTGRES_USER: job_manager
+#    volumes:
+#      - dbdata:/var/lib/postgresql/data
+#    networks:
+#      - app-network
+
+  #Redis Service
+  redis:
+    image: redis:5.0.1
+    container_name: redis
+    restart: unless-stopped
+    tty: true
+    ports:
+    - "6379:6379"
+    volumes:
+    - redisdata:/data
+    networks:
+    - app-network
+
+  #Rabbitmq Service
+#  rabbitmq:
+#    image: rabbitmq:3.7.8
+#    container_name: rabbitmq
+#    restart: unless-stopped
+#    tty: true
+#    ports:
+#    - "15672:15672"
+#    - "5672:5672"
+#    volumes:
+#    - rabbitmqdata:/var/lib/rabbitmq
+#    networks:
+#    - app-network
+
+#Docker Networks
+networks:
+  app-network:
+    driver: bridge
+
+#Volumes
+volumes:
+  redisdata:
+    driver: local
+  dbdata:
+    driver: local
+#  rabbitmqdata:
+#    driver: local
