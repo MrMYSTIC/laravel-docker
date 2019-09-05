@@ -108,6 +108,10 @@ test-coverage:
 migrate:
 	$(ART) migrate
 
+##rollback			Rollback migration
+rollback:
+	$(ART) migrate:rollback
+
 ##seed			Seeding the database
 seed:
 	$(ART) db:seed
